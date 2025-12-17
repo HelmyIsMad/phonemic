@@ -16,7 +16,7 @@ def install_requirements():
     print("🎵 Trying to install PyAudio...")
     try:
         subprocess.check_call([sys.executable, "-m", "pip", "install", "pyaudio==0.2.11"], 
-                             capture_output=True)
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         print("✅ PyAudio installed successfully!")
         return "pyaudio"
     except subprocess.CalledProcessError:
