@@ -1,6 +1,8 @@
-# Primary option - try this first
+# Audio library options (setup script will try both automatically)
+
+# Option 1: PyAudio (works well on Linux/Mac)
 pyaudio==0.2.11
 
-# Alternative if PyAudio fails to install:
-# sounddevice>=0.4.6
-# numpy>=1.21.0
+# Option 2: sounddevice + numpy (recommended for Windows)
+sounddevice>=0.4.6
+numpy>=1.21.0
