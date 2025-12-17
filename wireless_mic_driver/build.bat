@@ -1,4 +1,5 @@
 @echo off
+
 echo ========================================
 echo Building Wireless Microphone Driver
 echo ========================================
@@ -8,40 +9,69 @@ echo Setting up Visual Studio environment...
 
 set VCVARSALL_FOUND=0
 
-REM Try Visual Studio 2022 locations (in order of preference)
-if exist "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" (
-    echo Found Visual Studio 2022 Enterprise
-    call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
-    set VCVARSALL_FOUND=1
-) else if exist "C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Auxiliary\Build\vcvarsall.bat" (
-    echo Found Visual Studio 2022 Professional
-    call "C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Auxiliary\Build\vcvarsall.bat" x64
-    set VCVARSALL_FOUND=1
-) else if exist "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" (
-    echo Found Visual Studio 2022 Community
-    call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
-    set VCVARSALL_FOUND=1
-) else if exist "C:\Program Files\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" (
-    echo Found Visual Studio 2022 Build Tools
-    call "C:\Program Files\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x64
-    set VCVARSALL_FOUND=1
-) else if exist "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" (
-    echo Found Visual Studio 2019 Enterprise
-    call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
-    set VCVARSALL_FOUND=1
-) else if exist "C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Auxiliary\Build\vcvarsall.bat" (
-    echo Found Visual Studio 2019 Professional
-    call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Auxiliary\Build\vcvarsall.bat" x64
-    set VCVARSALL_FOUND=1
-) else if exist "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat" (
-    echo Found Visual Studio 2019 Community
-    call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
-    set VCVARSALL_FOUND=1
-) else if exist "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" (
-    echo Found Visual Studio 2019 Build Tools
-    call "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x64
-    set VCVARSALL_FOUND=1
-)
+REM Try Visual Studio 2022 locations (using goto for proper batch syntax)
+if exist "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" goto VS2022Enterprise
+if exist "C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Auxiliary\Build\vcvarsall.bat" goto VS2022Professional  
+if exist "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" goto VS2022Community
+if exist "C:\Program Files\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" goto VS2022BuildTools
+if exist "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" goto VS2019Enterprise
+if exist "C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Auxiliary\Build\vcvarsall.bat" goto VS2019Professional
+if exist "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat" goto VS2019Community
+if exist "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" goto VS2019BuildTools
+goto VSNotFound
+
+:VS2022Enterprise
+echo Found Visual Studio 2022 Enterprise
+call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+set VCVARSALL_FOUND=1
+goto VSFound
+
+:VS2022Professional
+echo Found Visual Studio 2022 Professional
+call "C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Auxiliary\Build\vcvarsall.bat" x64
+set VCVARSALL_FOUND=1
+goto VSFound
+
+:VS2022Community
+echo Found Visual Studio 2022 Community
+call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
+set VCVARSALL_FOUND=1
+goto VSFound
+
+:VS2022BuildTools
+echo Found Visual Studio 2022 Build Tools
+call "C:\Program Files\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x64
+set VCVARSALL_FOUND=1
+goto VSFound
+
+:VS2019Enterprise
+echo Found Visual Studio 2019 Enterprise
+call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+set VCVARSALL_FOUND=1
+goto VSFound
+
+:VS2019Professional
+echo Found Visual Studio 2019 Professional
+call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Auxiliary\Build\vcvarsall.bat" x64
+set VCVARSALL_FOUND=1
+goto VSFound
+
+:VS2019Community
+echo Found Visual Studio 2019 Community
+call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
+set VCVARSALL_FOUND=1
+goto VSFound
+
+:VS2019BuildTools
+echo Found Visual Studio 2019 Build Tools
+call "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x64
+set VCVARSALL_FOUND=1
+goto VSFound
+
+:VSNotFound
+set VCVARSALL_FOUND=0
+
+:VSFound
 
 REM Check if we found and set up Visual Studio
 if %VCVARSALL_FOUND%==0 (

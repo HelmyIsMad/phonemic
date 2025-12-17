@@ -10,6 +10,7 @@
 #include <propvarutil.h>
 #include <comdef.h>
 #include <atlbase.h>
+#include <atlcom.h>
 #include <memory>
 #include <thread>
 #include <mutex>
@@ -20,10 +21,10 @@
 class VirtualAudioDevice {
 private:
     // COM interfaces
-    CComPtr<IMMDeviceEnumerator> m_deviceEnumerator;
-    CComPtr<IMMDevice> m_virtualDevice;
-    CComPtr<IAudioClient> m_audioClient;
-    CComPtr<IAudioRenderClient> m_renderClient;
+    IMMDeviceEnumerator* m_deviceEnumerator;
+    IMMDevice* m_virtualDevice;
+    IAudioClient* m_audioClient;
+    IAudioRenderClient* m_renderClient;
     
     // Audio format
     WAVEFORMATEX* m_waveFormat;

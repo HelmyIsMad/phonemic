@@ -66,23 +66,23 @@ class DriverInterface:
         
         # CreateDevice() -> HRESULT
         self.dll.CreateDevice.argtypes = []
-        self.dll.CreateDevice.restype = ctypes.wintypes.HRESULT
+        self.dll.CreateDevice.restype = ctypes.c_long
         
         # StartDevice() -> HRESULT  
         self.dll.StartDevice.argtypes = []
-        self.dll.StartDevice.restype = ctypes.wintypes.HRESULT
+        self.dll.StartDevice.restype = ctypes.c_long
         
         # StopDevice() -> HRESULT
         self.dll.StopDevice.argtypes = []
-        self.dll.StopDevice.restype = ctypes.wintypes.HRESULT
+        self.dll.StopDevice.restype = ctypes.c_long
         
         # WriteAudio(data, size) -> HRESULT
         self.dll.WriteAudio.argtypes = [ctypes.POINTER(ctypes.c_ubyte), ctypes.wintypes.UINT]
-        self.dll.WriteAudio.restype = ctypes.wintypes.HRESULT
+        self.dll.WriteAudio.restype = ctypes.c_long
         
         # DestroyDevice() -> HRESULT
         self.dll.DestroyDevice.argtypes = []
-        self.dll.DestroyDevice.restype = ctypes.wintypes.HRESULT
+        self.dll.DestroyDevice.restype = ctypes.c_long
         
         # IsDeviceReady() -> BOOL
         self.dll.IsDeviceReady.argtypes = []

@@ -91,11 +91,11 @@ install(FILES ${HEADERS}
 )
 
 # Create build scripts
-configure_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/build.bat.in
-    ${CMAKE_CURRENT_BINARY_DIR}/build.bat
-    @ONLY
-)
+# configure_file(
+#     ${CMAKE_CURRENT_SOURCE_DIR}/build.bat.in
+#     ${CMAKE_CURRENT_BINARY_DIR}/build.bat
+#     @ONLY
+# )
 
 # Print configuration info
 message(STATUS "Building WirelessMicDriver")

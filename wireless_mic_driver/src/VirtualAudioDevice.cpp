@@ -6,7 +6,11 @@
 std::unique_ptr<VirtualAudioDevice> g_virtualDevice;
 
 VirtualAudioDevice::VirtualAudioDevice()
-    : m_waveFormat(nullptr)
+    : m_deviceEnumerator(nullptr)
+    , m_virtualDevice(nullptr)
+    , m_audioClient(nullptr)
+    , m_renderClient(nullptr)
+    , m_waveFormat(nullptr)
     , m_bufferFrameCount(0)
     , m_samplesPerSec(SAMPLE_RATE)
     , m_bitsPerSample(BITS_PER_SAMPLE)
@@ -91,10 +95,10 @@ HRESULT VirtualAudioDevice::SetupAudioFormat()
     }
     
     m_waveFormat->wFormatTag = WAVE_FORMAT_PCM;
-    m_waveFormat->nChannels = m_channels;
+    m_waveFormat->nChannels = static_cast<WORD>(m_channels);
     m_waveFormat->nSamplesPerSec = m_samplesPerSec;
-    m_waveFormat->wBitsPerSample = m_bitsPerSample;
-    m_waveFormat->nBlockAlign = (m_channels * m_bitsPerSample) / 8;
+    m_waveFormat->wBitsPerSample = static_cast<WORD>(m_bitsPerSample);
+    m_waveFormat->nBlockAlign = static_cast<WORD>((m_channels * m_bitsPerSample) / 8);
     m_waveFormat->nAvgBytesPerSec = m_samplesPerSec * m_waveFormat->nBlockAlign;
     m_waveFormat->cbSize = 0;
     
@@ -208,7 +212,7 @@ HRESULT VirtualAudioDevice::FillAudioBuffer()
         std::lock_guard<std::mutex> lock(m_bufferMutex);
         
         UINT32 availableData = GetBufferedDataSize();
-        UINT32 actualBytesToCopy = std::min(bytesToCopy, availableData);
+        UINT32 actualBytesToCopy = (bytesToCopy < availableData) ? bytesToCopy : availableData;
         
         if (actualBytesToCopy > 0) {
             // Handle circular buffer wraparound
@@ -309,10 +313,10 @@ void VirtualAudioDevice::Cleanup()
         m_waveFormat = nullptr;
     }
     
-    m_renderClient.Release();
-    m_audioClient.Release();
-    m_virtualDevice.Release();
-    m_deviceEnumerator.Release();
+    if (m_renderClient) m_renderClient->Release();
+    if (m_audioClient) m_audioClient->Release();
+    if (m_virtualDevice) m_virtualDevice->Release();
+    if (m_deviceEnumerator) m_deviceEnumerator->Release();
 }
 
 bool VirtualAudioDevice::IsDeviceAvailable() const

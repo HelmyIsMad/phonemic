@@ -1,0 +1,4 @@
+D:/Coding/phonemic/wireless_mic_driver/build/CMakeFiles/WirelessMicDriver.dir
+D:/Coding/phonemic/wireless_mic_driver/build/CMakeFiles/INSTALL.dir
+D:/Coding/phonemic/wireless_mic_driver/build/CMakeFiles/ALL_BUILD.dir
+D:/Coding/phonemic/wireless_mic_driver/build/CMakeFiles/ZERO_CHECK.dir
