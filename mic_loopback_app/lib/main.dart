@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:flutter_sound/flutter_sound.dart';
+import 'dart:async';
 
 void main() {
   runApp(const MyApp());
@@ -30,26 +30,14 @@ class MicLoopbackPage extends StatefulWidget {
 }
 
 class _MicLoopbackPageState extends State<MicLoopbackPage> {
-  FlutterSoundRecorder? _recorder;
-  FlutterSoundPlayer? _player;
-  bool _isRecording = false;
+  bool _isLoopbackActive = false;
   bool _isPermissionGranted = false;
   String _status = 'Stopped';
 
   @override
   void initState() {
     super.initState();
-    _initializeAudio();
-  }
-
-  Future<void> _initializeAudio() async {
-    _recorder = FlutterSoundRecorder();
-    _player = FlutterSoundPlayer();
-    
-    await _recorder!.openRecorder();
-    await _player!.openPlayer();
-    
-    await _checkPermission();
+    _checkPermission();
   }
 
   Future<void> _checkPermission() async {
@@ -72,33 +60,30 @@ class _MicLoopbackPageState extends State<MicLoopbackPage> {
       if (!_isPermissionGranted) return;
     }
 
-    if (_isRecording) return;
+    if (_isLoopbackActive) return;
 
     try {
-      await _recorder!.startRecorder(
-        toStream: _player!.foodSink,
-        codec: Codec.pcm16,
-        numChannels: 1,
-        sampleRate: 44100,
-      );
-
+      // TODO: Implement actual audio loopback using platform channels
+      // For now, just simulate the loopback state
       setState(() {
-        _isRecording = true;
-        _status = 'Running';
+        _isLoopbackActive = true;
+        _status = 'Running (Simulated)';
       });
+      
+      _showInfoDialog('Loopback started!\n\nNote: This is currently a UI demo. The actual audio loopback functionality needs to be implemented using platform-specific code or native audio libraries.');
+      
     } catch (e) {
       _showErrorDialog('Error starting loopback: $e');
     }
   }
 
   Future<void> _stopLoopback() async {
-    if (!_isRecording) return;
+    if (!_isLoopbackActive) return;
 
     try {
-      await _recorder!.stopRecorder();
-      
+      // TODO: Stop actual audio loopback
       setState(() {
-        _isRecording = false;
+        _isLoopbackActive = false;
         _status = 'Stopped';
       });
     } catch (e) {
@@ -122,10 +107,25 @@ class _MicLoopbackPageState extends State<MicLoopbackPage> {
     );
   }
 
+  void _showInfoDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Info'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void dispose() {
-    _recorder?.closeRecorder();
-    _player?.closePlayer();
+    // TODO: Clean up any audio resources
     super.dispose();
   }
 
@@ -146,7 +146,7 @@ class _MicLoopbackPageState extends State<MicLoopbackPage> {
             ),
             const SizedBox(height: 40),
             ElevatedButton(
-              onPressed: _isPermissionGranted && !_isRecording ? _startLoopback : null,
+              onPressed: _isPermissionGranted && !_isLoopbackActive ? _startLoopback : null,
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(200, 60),
                 textStyle: const TextStyle(fontSize: 16),
@@ -155,7 +155,7 @@ class _MicLoopbackPageState extends State<MicLoopbackPage> {
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: _isRecording ? _stopLoopback : null,
+              onPressed: _isLoopbackActive ? _stopLoopback : null,
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(200, 60),
                 textStyle: const TextStyle(fontSize: 16),
