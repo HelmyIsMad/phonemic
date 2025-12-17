@@ -12,6 +12,17 @@
 .swiftpm/
 migrate_working_dir/
 
+# Generated files that should not be in repo
+*.iml
+*.ipr
+*.iws
+.metadata
+*.jar
+gradlew
+gradlew.bat
+*.bat
+*.probe
+
 # IntelliJ related
 *.iml
 *.ipr
@@ -34,6 +45,14 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+
+# Gradle files
+.gradle/
+/android/.gradle/
+gradle-wrapper.jar
+gradle-wrapper.properties
+gradlew
+gradlew.bat
 
 # Symbolication related
 app.*.symbols
