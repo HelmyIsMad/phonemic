@@ -27,12 +27,12 @@ class AudioLoopbackClient:
         self.is_connected = False
         self.is_streaming = False
         
-        # Audio configuration
+        # Audio configuration - optimized for low latency
         self.sample_rate = 44100
         self.channels = 1
         self.dtype = np.int16
-        self.blocksize = 2048  # Larger buffer to prevent underruns
-        self.latency = 'low'  # Lower latency setting
+        self.blocksize = 512   # Smaller buffer for lower latency
+        self.latency = 0.01    # Very low latency (10ms)
         
         # Audio streams
         self.input_stream = None
@@ -101,10 +101,11 @@ class AudioLoopbackClient:
             self.socket.settimeout(10)  # Connection timeout
             self.socket.connect((host, port))
             
-            # Configure socket for better audio streaming
-            self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)  # Disable Nagle
-            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 65536)  # Larger receive buffer
-            self.socket.settimeout(0.05)  # Very short timeout for audio data
+            # Configure socket for ultra-low latency
+            self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)  # Disable Nagle algorithm
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 8192)   # Smaller buffer for faster processing
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 8192)   # Smaller send buffer too
+            self.socket.settimeout(0.01)  # Ultra-short timeout for minimal delay
             self.is_connected = True
             print("✅ Connected to phone successfully!")
             return True
