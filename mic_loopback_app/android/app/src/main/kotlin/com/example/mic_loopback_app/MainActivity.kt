@@ -1,40 +1,43 @@
 package com.example.mic_loopback_app
 
 import android.media.AudioFormat
-import android.media.AudioManager
 import android.media.AudioRecord
-import android.media.AudioTrack
 import android.media.MediaRecorder
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import kotlin.concurrent.thread
+import java.io.IOException
+import java.net.ServerSocket
+import java.net.Socket
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.example.micloopback/audio"
     private var audioRecord: AudioRecord? = null
-    private var audioTrack: AudioTrack? = null
-    private var isRecording = false
-    private var recordingThread: Thread? = null
+    private var isStreaming = false
+    private var streamingThread: Thread? = null
+    private var serverSocket: ServerSocket? = null
+    private var clientSocket: Socket? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
-                "startAudioLoopback" -> {
+                "startAudioStreaming" -> {
                     try {
-                        startAudioLoopback()
-                        result.success("Audio loopback started")
+                        val port = call.argument<Int>("port") ?: 8888
+                        startAudioStreaming(port)
+                        result.success("Audio streaming started on port $port")
                     } catch (e: Exception) {
-                        result.error("ERROR", "Failed to start audio loopback: ${e.message}", null)
+                        result.error("ERROR", "Failed to start audio streaming: ${e.message}", null)
                     }
                 }
-                "stopAudioLoopback" -> {
+                "stopAudioStreaming" -> {
                     try {
-                        stopAudioLoopback()
-                        result.success("Audio loopback stopped")
+                        stopAudioStreaming()
+                        result.success("Audio streaming stopped")
                     } catch (e: Exception) {
-                        result.error("ERROR", "Failed to stop audio loopback: ${e.message}", null)
+                        result.error("ERROR", "Failed to stop audio streaming: ${e.message}", null)
                     }
                 }
                 else -> {
@@ -44,8 +47,8 @@ class MainActivity : FlutterActivity() {
         }
     }
 
-    private fun startAudioLoopback() {
-        if (isRecording) return
+    private fun startAudioStreaming(port: Int) {
+        if (isStreaming) return
 
         val sampleRate = 44100
         val channelConfig = AudioFormat.CHANNEL_IN_MONO
@@ -60,48 +63,67 @@ class MainActivity : FlutterActivity() {
             bufferSize
         )
 
-        audioTrack = AudioTrack(
-            AudioManager.STREAM_MUSIC,
-            sampleRate,
-            AudioFormat.CHANNEL_OUT_MONO,
-            audioFormat,
-            bufferSize,
-            AudioTrack.MODE_STREAM
-        )
+        // Start server socket
+        serverSocket = ServerSocket(port)
+        isStreaming = true
 
-        audioRecord?.startRecording()
-        audioTrack?.play()
+        streamingThread = thread {
+            try {
+                // Wait for client connection
+                clientSocket = serverSocket?.accept()
+                val outputStream = clientSocket?.getOutputStream()
 
-        isRecording = true
+                // Start recording
+                audioRecord?.startRecording()
 
-        recordingThread = thread {
-            val buffer = ShortArray(bufferSize)
-            while (isRecording) {
-                val read = audioRecord?.read(buffer, 0, bufferSize) ?: 0
-                if (read > 0) {
-                    audioTrack?.write(buffer, 0, read)
+                val buffer = ByteArray(bufferSize * 2) // 16-bit = 2 bytes per sample
+                while (isStreaming && clientSocket?.isConnected == true) {
+                    val read = audioRecord?.read(buffer, 0, buffer.size) ?: 0
+                    if (read > 0) {
+                        try {
+                            outputStream?.write(buffer, 0, read)
+                            outputStream?.flush()
+                        } catch (e: IOException) {
+                            // Client disconnected
+                            break
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                // Handle connection errors
+            } finally {
+                try {
+                    clientSocket?.close()
+                    audioRecord?.stop()
+                } catch (e: Exception) {
+                    // Ignore cleanup errors
                 }
             }
         }
     }
 
-    private fun stopAudioLoopback() {
-        isRecording = false
+    private fun stopAudioStreaming() {
+        isStreaming = false
 
-        recordingThread?.interrupt()
-        recordingThread = null
+        streamingThread?.interrupt()
+        streamingThread = null
+
+        try {
+            clientSocket?.close()
+            serverSocket?.close()
+        } catch (e: IOException) {
+            // Ignore cleanup errors
+        }
+        clientSocket = null
+        serverSocket = null
 
         audioRecord?.stop()
         audioRecord?.release()
         audioRecord = null
-
-        audioTrack?.stop()
-        audioTrack?.release()
-        audioTrack = null
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        stopAudioLoopback()
+        stopAudioStreaming()
     }
 }

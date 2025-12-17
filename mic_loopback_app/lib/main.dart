@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:audio_session/audio_session.dart';
 import 'dart:async';
+import 'dart:io';
 
 void main() {
   runApp(const MyApp());
@@ -33,15 +34,40 @@ class MicLoopbackPage extends StatefulWidget {
 
 class _MicLoopbackPageState extends State<MicLoopbackPage> {
   static const platform = MethodChannel('com.example.micloopback/audio');
-  bool _isLoopbackActive = false;
+  bool _isStreamingActive = false;
   bool _isPermissionGranted = false;
   String _status = 'Stopped';
+  String _ipAddress = 'Getting IP...';
+  final int _port = 8888;
 
   @override
   void initState() {
     super.initState();
     _initializeAudioSession();
     _checkPermission();
+    _getDeviceIP();
+  }
+
+  Future<void> _getDeviceIP() async {
+    try {
+      for (var interface in await NetworkInterface.list()) {
+        for (var addr in interface.addresses) {
+          if (addr.type == InternetAddressType.IPv4 && !addr.isLoopback) {
+            setState(() {
+              _ipAddress = addr.address;
+            });
+            return;
+          }
+        }
+      }
+      setState(() {
+        _ipAddress = 'No network found';
+      });
+    } catch (e) {
+      setState(() {
+        _ipAddress = 'Error: ${e.toString()}';
+      });
+    }
   }
 
   Future<void> _initializeAudioSession() async {
@@ -71,37 +97,37 @@ class _MicLoopbackPageState extends State<MicLoopbackPage> {
     }
   }
 
-  Future<void> _toggleLoopback() async {
+  Future<void> _toggleStreaming() async {
     if (!_isPermissionGranted) {
       await _checkPermission();
       if (!_isPermissionGranted) return;
     }
 
     try {
-      if (_isLoopbackActive) {
+      if (_isStreamingActive) {
         // Stop streaming
         try {
-          await platform.invokeMethod('stopAudioLoopback');
+          await platform.invokeMethod('stopAudioStreaming');
           setState(() {
-            _isLoopbackActive = false;
+            _isStreamingActive = false;
             _status = 'Stopped';
           });
         } on PlatformException catch (e) {
-          _showErrorDialog('Failed to stop audio loopback: ${e.message}');
+          _showErrorDialog('Failed to stop audio streaming: ${e.message}');
         }
       } else {
         // Start streaming
         try {
-          await platform.invokeMethod('startAudioLoopback');
+          await platform.invokeMethod('startAudioStreaming', {'port': _port});
           setState(() {
-            _isLoopbackActive = true;
-            _status = 'Streaming';
+            _isStreamingActive = true;
+            _status = 'Streaming on $_ipAddress:$_port';
           });
         } on PlatformException catch (e) {
           if (e.code == 'UNAVAILABLE') {
-            _showInfoDialog('Audio loopback feature not yet implemented on this platform.\n\nThe native Android/iOS code needs to be added to enable real-time microphone to speaker streaming.');
+            _showInfoDialog('Audio streaming feature not yet implemented on this platform.\n\nThe native Android code needs to be updated to enable network audio streaming.');
           } else {
-            _showErrorDialog('Failed to start audio loopback: ${e.message}');
+            _showErrorDialog('Failed to start audio streaming: ${e.message}');
           }
         }
       }
@@ -153,26 +179,54 @@ class _MicLoopbackPageState extends State<MicLoopbackPage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: const Text('Mic Loopback'),
+        title: const Text('Wireless Microphone'),
       ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             const Text(
-              'Mic to Speaker Loopback',
+              'Wireless Microphone Server',
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(16),
+              margin: const EdgeInsets.symmetric(horizontal: 20),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    'Server Address:',
+                    style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                  ),
+                  const SizedBox(height: 8),
+                  SelectableText(
+                    '$_ipAddress:$_port',
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Connect your PC to this address',
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 40),
             ElevatedButton(
-              onPressed: _isPermissionGranted ? _toggleLoopback : null,
+              onPressed: _isPermissionGranted ? _toggleStreaming : null,
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(200, 60),
                 textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                backgroundColor: _isLoopbackActive ? Colors.red : Colors.green,
+                backgroundColor: _isStreamingActive ? Colors.red : Colors.green,
                 foregroundColor: Colors.white,
               ),
-              child: Text(_isLoopbackActive ? 'Stop Streaming' : 'Start Streaming'),
+              child: Text(_isStreamingActive ? 'Stop Server' : 'Start Server'),
             ),
             const SizedBox(height: 40),
             Text(
