@@ -174,12 +174,15 @@ class AudioLoopbackClient:
 
     def start_simple_playback(self):
         """Start simple audio playback through speakers"""
-        print("🎵 Starting audio playback through speakers...")
+        # Get default output device
+        default_device = sd.query_devices(kind='output')
+        print(f"🎵 Using default playback device: {default_device['name']}")
         print("💡 Phone audio will play through your PC speakers")
         print("📝 Apps can record this using 'Stereo Mix' or 'What You Hear' if available")
         
         try:
             with sd.OutputStream(
+                device=None,  # Use system default
                 samplerate=self.sample_rate,
                 channels=self.channels,
                 dtype='float32',
@@ -203,6 +206,30 @@ class AudioLoopbackClient:
         except Exception as e:
             print(f"❌ Playback error: {e}")
 
+    def check_stereo_mix_setup(self):
+        """Check if Stereo Mix is properly configured"""
+        print("\n🔍 CHECKING STEREO MIX SETUP...")
+        
+        try:
+            # Check Windows volume mixer for our process
+            print("📊 Audio troubleshooting:")
+            print("1. Can you hear the phone audio through speakers? (Test: speak into phone)")
+            print("2. Open Windows Volume Mixer (right-click speaker → Open Volume mixer)")
+            print("3. Look for 'Python' or this script in the mixer")
+            print("4. Make sure it's not muted and volume is up")
+            
+            # Get current default devices
+            default_out = sd.query_devices(kind='output')
+            print(f"\n🔊 Current default output: {default_out['name']}")
+            
+            print("\n⚠️  STEREO MIX REQUIREMENTS:")
+            print("- Stereo Mix must be ENABLED and set as DEFAULT recording device")
+            print("- Audio must play through the SAME device that Stereo Mix monitors")
+            print("- Some systems don't have Stereo Mix (especially laptops)")
+            
+        except Exception as e:
+            print(f"Error checking setup: {e}")
+
     def show_windows_setup_guide(self):
         """Show how to set up Windows to route speaker output as microphone"""
         print("\n" + "="*70)
@@ -213,8 +240,9 @@ class AudioLoopbackClient:
         print("2. Click 'Sound Control Panel' → Recording tab")
         print("3. Right-click empty area → Show Disabled Devices")
         print("4. Enable 'Stereo Mix' if available")
-        print("5. Set as default recording device")
-        print("6. Apps will now record whatever plays through speakers")
+        print("5. Set as DEFAULT recording device (important!)")
+        print("6. Go to Stereo Mix Properties → Levels → make sure it's not muted")
+        print("7. Apps will now record whatever plays through speakers")
         print("\n🔧 METHOD 2: Use 'Listen to this device' feature")
         print("1. Go to Recording tab in Sound Control Panel")
         print("2. Right-click your microphone → Properties")
@@ -222,12 +250,17 @@ class AudioLoopbackClient:
         print("4. Check 'Listen to this device'")
         print("5. Select playback device")
         print("6. Now microphone picks up speaker audio")
-        print("\n🔧 METHOD 3: App-specific solutions")
-        print("📢 OBS: Use 'Desktop Audio' source")
-        print("🎮 Discord: Try 'Use Legacy Audio Subsystem'")
-        print("📹 Teams: May have 'System Audio' option")
+        print("\n🔧 METHOD 3: App-specific solutions (RECOMMENDED)")
+        print("📢 OBS: Add 'Desktop Audio' source (captures all system audio)")
+        print("🎮 Discord: Go to Voice Settings → Advanced → try different audio subsystems")
+        print("📹 Teams: Look for 'Computer Sound' option in audio settings")
+        print("🎵 Audacity: Use 'Windows WASAPI' host, select loopback device")
+        print("\n❌ IF STEREO MIX DOESN'T WORK:")
+        print("- Many modern systems don't have Stereo Mix")
+        print("- Try METHOD 3 (app-specific solutions) instead")
+        print("- Some apps can directly capture desktop audio")
         print("\n💡 TIP: Start this client, then configure your app to use")
-        print("    the loopback method that works best for your system.")
+        print("    the method that works best for your system.")
         print("="*70)
 
     def start_with_guidance(self):
@@ -249,7 +282,30 @@ class AudioLoopbackClient:
         
         # Start simple playback
         print(f"\n🚀 Starting audio stream...")
-        self.start_simple_playback()
+        
+        # Start audio streaming in a separate thread so we can provide guidance
+        import threading
+        audio_thread = threading.Thread(target=self.start_simple_playback, daemon=True)
+        audio_thread.start()
+        
+        # Give it a moment to start
+        time.sleep(2)
+        
+        # Check setup after audio starts
+        self.check_stereo_mix_setup()
+        
+        print("\n📋 QUICK TEST:")
+        print("1. Speak into your phone - do you hear it from PC speakers?")
+        print("2. If YES: Check if Stereo Mix shows activity levels")
+        print("3. If NO: Check phone server is running and WiFi connection")
+        print("4. Try the app-specific methods if Stereo Mix doesn't work")
+        print("\n🛑 Press Ctrl+C to stop")
+        
+        # Wait for audio thread
+        try:
+            audio_thread.join()
+        except KeyboardInterrupt:
+            print("\n🛑 Stopping...")
 
     def stop(self):
         """Stop and cleanup"""
