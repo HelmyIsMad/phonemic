@@ -31,7 +31,8 @@ class AudioLoopbackClient:
         self.sample_rate = 44100
         self.channels = 1
         self.dtype = np.int16
-        self.blocksize = 1024
+        self.blocksize = 2048  # Larger buffer to prevent underruns
+        self.latency = 'low'  # Lower latency setting
         
         # Audio streams
         self.input_stream = None
@@ -100,8 +101,10 @@ class AudioLoopbackClient:
             self.socket.settimeout(10)  # Connection timeout
             self.socket.connect((host, port))
             
-            # Set socket to non-blocking for audio streaming
-            self.socket.settimeout(0.1)  # Short timeout for audio data
+            # Configure socket for better audio streaming
+            self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)  # Disable Nagle
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 65536)  # Larger receive buffer
+            self.socket.settimeout(0.05)  # Very short timeout for audio data
             self.is_connected = True
             print("✅ Connected to phone successfully!")
             return True
@@ -121,7 +124,8 @@ class AudioLoopbackClient:
 
     def output_callback(self, outdata, frames, time, status):
         """Callback for audio output"""
-        if status:
+        # Suppress common audio status messages (underflow is normal with network audio)
+        if status and 'underflow' not in str(status).lower():
             print(f"Output status: {status}")
         
         try:
@@ -180,7 +184,8 @@ class AudioLoopbackClient:
                 channels=self.channels,
                 dtype='float32',
                 callback=self.output_callback,
-                blocksize=self.blocksize
+                blocksize=self.blocksize,
+                latency=self.latency
             ):
                 self.is_streaming = True
                 print("✅ Audio streaming active!")
