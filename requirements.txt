@@ -1,1 +1,6 @@
+# Primary option - try this first
 pyaudio==0.2.11
+
+# Alternative if PyAudio fails to install:
+# sounddevice>=0.4.6
+# numpy>=1.21.0
