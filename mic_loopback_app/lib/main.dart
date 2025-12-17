@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:audio_session/audio_session.dart';
 import 'dart:async';
 
 void main() {
@@ -30,6 +32,7 @@ class MicLoopbackPage extends StatefulWidget {
 }
 
 class _MicLoopbackPageState extends State<MicLoopbackPage> {
+  static const platform = MethodChannel('com.example.micloopback/audio');
   bool _isLoopbackActive = false;
   bool _isPermissionGranted = false;
   String _status = 'Stopped';
@@ -37,7 +40,21 @@ class _MicLoopbackPageState extends State<MicLoopbackPage> {
   @override
   void initState() {
     super.initState();
+    _initializeAudioSession();
     _checkPermission();
+  }
+
+  Future<void> _initializeAudioSession() async {
+    try {
+      final session = await AudioSession.instance;
+      await session.configure(const AudioSessionConfiguration(
+        avAudioSessionCategory: AVAudioSessionCategory.playAndRecord,
+        avAudioSessionCategoryOptions: AVAudioSessionCategoryOptions.defaultToSpeaker,
+        avAudioSessionMode: AVAudioSessionMode.measurement,
+      ));
+    } catch (e) {
+      print('Error initializing audio session: $e');
+    }
   }
 
   Future<void> _checkPermission() async {
@@ -63,21 +80,30 @@ class _MicLoopbackPageState extends State<MicLoopbackPage> {
     try {
       if (_isLoopbackActive) {
         // Stop streaming
-        // TODO: Stop actual audio loopback
-        setState(() {
-          _isLoopbackActive = false;
-          _status = 'Stopped';
-        });
+        try {
+          await platform.invokeMethod('stopAudioLoopback');
+          setState(() {
+            _isLoopbackActive = false;
+            _status = 'Stopped';
+          });
+        } on PlatformException catch (e) {
+          _showErrorDialog('Failed to stop audio loopback: ${e.message}');
+        }
       } else {
         // Start streaming
-        // TODO: Implement actual audio loopback using platform channels
-        // For now, just simulate the loopback state
-        setState(() {
-          _isLoopbackActive = true;
-          _status = 'Streaming (Simulated)';
-        });
-        
-        _showInfoDialog('Audio streaming started!\n\nNote: This is currently a UI demo. The actual audio loopback functionality needs to be implemented using platform-specific code or native audio libraries.');
+        try {
+          await platform.invokeMethod('startAudioLoopback');
+          setState(() {
+            _isLoopbackActive = true;
+            _status = 'Streaming';
+          });
+        } on PlatformException catch (e) {
+          if (e.code == 'UNAVAILABLE') {
+            _showInfoDialog('Audio loopback feature not yet implemented on this platform.\n\nThe native Android/iOS code needs to be added to enable real-time microphone to speaker streaming.');
+          } else {
+            _showErrorDialog('Failed to start audio loopback: ${e.message}');
+          }
+        }
       }
     } catch (e) {
       _showErrorDialog('Error toggling audio stream: $e');
