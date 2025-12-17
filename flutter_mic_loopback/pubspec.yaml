@@ -1,0 +1,22 @@
+name: flutter_mic_loopback
+description: A Flutter app for microphone to speaker audio loopback
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.2
+  permission_handler: ^11.0.1
+  flutter_sound: ^9.2.13
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
+  uses-material-design: true
