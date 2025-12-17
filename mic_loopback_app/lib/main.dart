@@ -54,40 +54,33 @@ class _MicLoopbackPageState extends State<MicLoopbackPage> {
     }
   }
 
-  Future<void> _startLoopback() async {
+  Future<void> _toggleLoopback() async {
     if (!_isPermissionGranted) {
       await _checkPermission();
       if (!_isPermissionGranted) return;
     }
 
-    if (_isLoopbackActive) return;
-
     try {
-      // TODO: Implement actual audio loopback using platform channels
-      // For now, just simulate the loopback state
-      setState(() {
-        _isLoopbackActive = true;
-        _status = 'Running (Simulated)';
-      });
-      
-      _showInfoDialog('Loopback started!\n\nNote: This is currently a UI demo. The actual audio loopback functionality needs to be implemented using platform-specific code or native audio libraries.');
-      
+      if (_isLoopbackActive) {
+        // Stop streaming
+        // TODO: Stop actual audio loopback
+        setState(() {
+          _isLoopbackActive = false;
+          _status = 'Stopped';
+        });
+      } else {
+        // Start streaming
+        // TODO: Implement actual audio loopback using platform channels
+        // For now, just simulate the loopback state
+        setState(() {
+          _isLoopbackActive = true;
+          _status = 'Streaming (Simulated)';
+        });
+        
+        _showInfoDialog('Audio streaming started!\n\nNote: This is currently a UI demo. The actual audio loopback functionality needs to be implemented using platform-specific code or native audio libraries.');
+      }
     } catch (e) {
-      _showErrorDialog('Error starting loopback: $e');
-    }
-  }
-
-  Future<void> _stopLoopback() async {
-    if (!_isLoopbackActive) return;
-
-    try {
-      // TODO: Stop actual audio loopback
-      setState(() {
-        _isLoopbackActive = false;
-        _status = 'Stopped';
-      });
-    } catch (e) {
-      _showErrorDialog('Error stopping loopback: $e');
+      _showErrorDialog('Error toggling audio stream: $e');
     }
   }
 
@@ -146,23 +139,14 @@ class _MicLoopbackPageState extends State<MicLoopbackPage> {
             ),
             const SizedBox(height: 40),
             ElevatedButton(
-              onPressed: _isPermissionGranted && !_isLoopbackActive ? _startLoopback : null,
+              onPressed: _isPermissionGranted ? _toggleLoopback : null,
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(200, 60),
-                textStyle: const TextStyle(fontSize: 16),
-              ),
-              child: const Text('Start Loopback'),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _isLoopbackActive ? _stopLoopback : null,
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size(200, 60),
-                textStyle: const TextStyle(fontSize: 16),
-                backgroundColor: Colors.red,
+                textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                backgroundColor: _isLoopbackActive ? Colors.red : Colors.green,
                 foregroundColor: Colors.white,
               ),
-              child: const Text('Stop Loopback'),
+              child: Text(_isLoopbackActive ? 'Stop Streaming' : 'Start Streaming'),
             ),
             const SizedBox(height: 40),
             Text(
