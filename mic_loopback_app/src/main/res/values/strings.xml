@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Mic Loopback</string>
+    <string name="start_loopback">Start Loopback</string>
+    <string name="stop_loopback">Stop Loopback</string>
+    <string name="status_stopped">Status: Stopped</string>
+    <string name="status_running">Status: Running</string>
+    <string name="permission_required">Microphone permission required</string>
+</resources>
