@@ -53,9 +53,8 @@ class MainActivity : FlutterActivity() {
         val sampleRate = 44100
         val channelConfig = AudioFormat.CHANNEL_IN_MONO
         val audioFormat = AudioFormat.ENCODING_PCM_16BIT
-        // Use smaller buffer for lower latency
-        val minBufferSize = AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioFormat)
-        val bufferSize = minBufferSize / 2  // Smaller buffer = lower latency
+        // Use standard buffer size for stable audio
+        val bufferSize = AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioFormat)
 
         audioRecord = AudioRecord(
             MediaRecorder.AudioSource.MIC,
@@ -78,15 +77,14 @@ class MainActivity : FlutterActivity() {
                 // Start recording
                 audioRecord?.startRecording()
 
-                // Use smaller buffer chunks for lower latency
-                val buffer = ByteArray(bufferSize) // Smaller chunks = faster transmission
+                // Use proper buffer size for stable transmission
+                val buffer = ByteArray(bufferSize * 2) // 16-bit = 2 bytes per sample
                 while (isStreaming && clientSocket?.isConnected == true) {
                     val read = audioRecord?.read(buffer, 0, buffer.size) ?: 0
                     if (read > 0) {
                         try {
                             outputStream?.write(buffer, 0, read)
                             outputStream?.flush()
-                            // Immediate flush for minimal delay
                         } catch (e: IOException) {
                             // Client disconnected
                             break
