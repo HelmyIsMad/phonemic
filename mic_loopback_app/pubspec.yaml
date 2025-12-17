@@ -37,8 +37,6 @@ dependencies:
   
   # Audio recording and playback dependencies
   permission_handler: ^11.0.1
-  record: ^5.0.4
-  audioplayers: ^5.2.1
 
 dev_dependencies:
   flutter_test:
