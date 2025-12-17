@@ -36,8 +36,11 @@ class AudioClient:
         try:
             print(f"Connecting to {host}:{port}...")
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.socket.settimeout(10)  # 10 second timeout
+            self.socket.settimeout(10)  # Connection timeout
             self.socket.connect((host, port))
+            
+            # Set shorter timeout for audio streaming
+            self.socket.settimeout(0.1)  # Short timeout for audio data
             self.is_connected = True
             print("✅ Connected successfully!")
             return True
@@ -51,30 +54,45 @@ class AudioClient:
             print(f"Audio status: {status}")
         
         try:
-            # Receive audio data from socket
-            data = self.socket.recv(frames * 2)  # 16-bit = 2 bytes per sample
+            # Try to receive audio data from socket
+            total_data = b""
+            bytes_needed = frames * 2  # 16-bit = 2 bytes per sample
             
-            if not data:
-                raise Exception("No data received")
+            while len(total_data) < bytes_needed and self.is_connected:
+                try:
+                    chunk = self.socket.recv(bytes_needed - len(total_data))
+                    if not chunk:
+                        raise Exception("Phone disconnected")
+                    total_data += chunk
+                except socket.timeout:
+                    # Timeout is normal, just use what we have
+                    break
+                except ConnectionResetError:
+                    raise Exception("Phone disconnected")
             
-            # Convert bytes to numpy array
-            audio_data = np.frombuffer(data, dtype=np.int16)
-            
-            # Pad or truncate to match expected frame count
-            if len(audio_data) < frames:
-                audio_data = np.pad(audio_data, (0, frames - len(audio_data)), 'constant')
-            elif len(audio_data) > frames:
-                audio_data = audio_data[:frames]
-            
-            # Copy to output buffer (reshape for mono)
-            outdata[:len(audio_data), 0] = audio_data.astype(np.float32) / 32768.0
+            if total_data:
+                # Convert bytes to numpy array
+                audio_data = np.frombuffer(total_data, dtype=np.int16)
+                
+                # Pad or truncate to match expected frame count
+                if len(audio_data) < frames:
+                    audio_data = np.pad(audio_data, (0, frames - len(audio_data)), 'constant')
+                elif len(audio_data) > frames:
+                    audio_data = audio_data[:frames]
+                
+                # Copy to output buffer (reshape for mono)
+                outdata[:len(audio_data), 0] = audio_data.astype(np.float32) / 32768.0
+            else:
+                # No data received, fill with silence
+                outdata.fill(0)
             
         except Exception as e:
             # Fill with silence on error
             outdata.fill(0)
-            if self.is_connected:
+            if self.is_connected and "timed out" not in str(e).lower():
                 print(f"Audio error: {e}")
-                self.stop()
+                if "disconnected" in str(e).lower():
+                    self.stop()
 
     def start_receiving(self):
         """Start receiving and playing audio"""

@@ -97,8 +97,11 @@ class AudioLoopbackClient:
         try:
             print(f"📱 Connecting to {host}:{port}...")
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.socket.settimeout(10)
+            self.socket.settimeout(10)  # Connection timeout
             self.socket.connect((host, port))
+            
+            # Set socket to non-blocking for audio streaming
+            self.socket.settimeout(0.1)  # Short timeout for audio data
             self.is_connected = True
             print("✅ Connected to phone successfully!")
             return True
@@ -122,31 +125,48 @@ class AudioLoopbackClient:
             print(f"Output status: {status}")
         
         try:
-            # Receive audio from phone
-            data = self.socket.recv(frames * 2)
-            if not data:
-                raise Exception("No data from phone")
+            # Try to receive audio from phone
+            total_data = b""
+            bytes_needed = frames * 2  # 16-bit = 2 bytes per sample
             
-            # Convert to numpy array
-            audio_data = np.frombuffer(data, dtype=np.int16)
+            while len(total_data) < bytes_needed and self.is_connected:
+                try:
+                    chunk = self.socket.recv(bytes_needed - len(total_data))
+                    if not chunk:
+                        raise Exception("Phone disconnected")
+                    total_data += chunk
+                except socket.timeout:
+                    # Timeout is normal, fill with silence for this frame
+                    break
+                except ConnectionResetError:
+                    raise Exception("Phone disconnected")
             
-            # Handle size mismatch
-            if len(audio_data) < frames:
-                audio_data = np.pad(audio_data, (0, frames - len(audio_data)), 'constant')
-            elif len(audio_data) > frames:
-                audio_data = audio_data[:frames]
-            
-            # Convert to float and output
-            outdata[:, 0] = audio_data.astype(np.float32) / 32768.0
-            
-            # Store for potential loopback
-            with self.buffer_lock:
-                self.audio_buffer = outdata.copy()
+            if total_data:
+                # Convert to numpy array
+                audio_data = np.frombuffer(total_data, dtype=np.int16)
+                
+                # Handle size mismatch
+                if len(audio_data) < frames:
+                    audio_data = np.pad(audio_data, (0, frames - len(audio_data)), 'constant')
+                elif len(audio_data) > frames:
+                    audio_data = audio_data[:frames]
+                
+                # Convert to float and output
+                outdata[:len(audio_data), 0] = audio_data.astype(np.float32) / 32768.0
+                
+                # Store for potential loopback
+                with self.buffer_lock:
+                    self.audio_buffer = outdata.copy()
+            else:
+                # No data received, fill with silence
+                outdata.fill(0)
                 
         except Exception as e:
             outdata.fill(0)
-            if self.is_connected:
+            if self.is_connected and "timed out" not in str(e).lower():
                 print(f"📡 Audio error: {e}")
+                if "disconnected" in str(e).lower():
+                    self.is_connected = False
 
     def start_simple_playback(self):
         """Start simple audio playback through speakers"""
